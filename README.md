@@ -12,11 +12,14 @@ your cruiser to Police HQ, work your shift, and head home.
 
 > Godot isn't required to *edit* the text files, but you need it to play.
 
-## Controls (M1)
+## Controls
 
-- **Rooms:** click to walk, or use **WASD / arrow keys**.
-- **Driving:** **WASD / arrow keys** to drive the cruiser.
-- Walk near hotspots (keys, badge, doors, the cruiser, the duty desk) to interact.
+- **Rooms:** **left-click** to walk (or use **WASD / arrow keys**).
+- **Verbs (Sierra style):** **right-click cycles the active verb** — Walk, Look,
+  Use, Talk, Take — shown next to the cursor. Pick a verb, then **left-click a
+  hotspot**: your officer walks over and applies it (e.g. *Look* the badge to
+  read it, *Take* it to pocket it, *Use* the cruiser to drive).
+- **Driving:** **WASD / arrow keys** to drive; reach a building to enter it.
 
 ## The M1 loop (vertical slice)
 

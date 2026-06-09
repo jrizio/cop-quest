@@ -48,6 +48,7 @@ position = Vector2(50, 105)
 metadata/action = "exit"
 metadata/target = "res://scenes/rooms/bedroom.tscn"
 metadata/spawn = "FromDriveway"
+metadata/look = "The front door to your house."
 
 [node name="Cruiser" type="Marker2D" parent="Hotspots"]
 position = Vector2(180, 145)
@@ -56,6 +57,7 @@ metadata/target = "res://scenes/driving/town.tscn"
 metadata/spawn = "FromDriveway"
 metadata/requires = "car_keys"
 metadata/requires_msg = "You need your car keys to drive. They're on the dresser at home."
+metadata/look = "Your patrol cruiser. Use it to head to HQ."
 
 [node name="CruiserVisual" type="ColorRect" parent="Hotspots/Cruiser"]
 offset_left = -12.0

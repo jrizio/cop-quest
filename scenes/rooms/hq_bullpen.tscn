@@ -47,12 +47,14 @@ position = Vector2(160, 165)
 [node name="DutyDesk" type="Marker2D" parent="Hotspots"]
 position = Vector2(160, 82)
 metadata/action = "duty"
+metadata/look = "The duty desk. Report here to start or end your shift."
 
 [node name="ExitToTown" type="Marker2D" parent="Hotspots"]
 position = Vector2(160, 192)
 metadata/action = "exit"
 metadata/target = "res://scenes/driving/town.tscn"
 metadata/spawn = "FromHQ"
+metadata/look = "The door back out to the parking lot."
 
 [node name="Player" parent="." instance=ExtResource("1")]
 position = Vector2(160, 150)

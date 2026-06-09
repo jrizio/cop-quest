@@ -54,6 +54,7 @@ position = Vector2(258, 48)
 metadata/action = "pickup"
 metadata/item_id = "car_keys"
 metadata/label = "car keys"
+metadata/look = "Your car keys. You'll need these to drive the cruiser."
 
 [node name="KeysVisual" type="ColorRect" parent="Hotspots/Keys"]
 offset_left = -5.0
@@ -67,6 +68,7 @@ position = Vector2(150, 125)
 metadata/action = "pickup"
 metadata/item_id = "badge"
 metadata/label = "badge"
+metadata/look = "Your police badge. Never leave home without it."
 
 [node name="BadgeVisual" type="ColorRect" parent="Hotspots/Badge"]
 offset_left = -5.0
@@ -80,6 +82,7 @@ position = Vector2(308, 105)
 metadata/action = "exit"
 metadata/target = "res://scenes/rooms/driveway.tscn"
 metadata/spawn = "FromBedroom"
+metadata/look = "The door out to your driveway."
 
 [node name="Player" parent="." instance=ExtResource("1")]
 position = Vector2(90, 150)
