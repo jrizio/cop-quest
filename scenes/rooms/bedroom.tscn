@@ -16,39 +16,39 @@ centered = false
 [node name="Spawns" type="Node2D" parent="."]
 
 [node name="Default" type="Marker2D" parent="Spawns"]
-position = Vector2(150, 170)
+position = Vector2(210, 185)
 
 [node name="FromDriveway" type="Marker2D" parent="Spawns"]
-position = Vector2(290, 165)
+position = Vector2(140, 152)
 
 [node name="Hotspots" type="Node2D" parent="."]
 
 [node name="Keys" type="Marker2D" parent="Hotspots"]
-position = Vector2(260, 34)
+position = Vector2(200, 108)
 metadata/action = "pickup"
 metadata/item_id = "car_keys"
 metadata/label = "car keys"
-metadata/look = "Your car keys, resting on the dresser. You'll need these to drive the cruiser."
+metadata/look = "Your car keys, on the side table. You'll need these to drive the cruiser."
 
 [node name="KeysVisual" type="Sprite2D" parent="Hotspots/Keys"]
 texture = ExtResource("4")
 
 [node name="Badge" type="Marker2D" parent="Hotspots"]
-position = Vector2(150, 150)
+position = Vector2(175, 182)
 metadata/action = "pickup"
 metadata/item_id = "badge"
 metadata/label = "badge"
-metadata/look = "Your police badge, lying on the rug. Never leave home without it."
+metadata/look = "Your police badge, on the carpet. Never leave home without it."
 
 [node name="BadgeVisual" type="Sprite2D" parent="Hotspots/Badge"]
 texture = ExtResource("5")
 
 [node name="Door" type="Marker2D" parent="Hotspots"]
-position = Vector2(308, 105)
+position = Vector2(115, 138)
 metadata/action = "exit"
 metadata/target = "res://scenes/rooms/driveway.tscn"
 metadata/spawn = "FromBedroom"
-metadata/look = "The door out to your driveway."
+metadata/look = "The doorway leading out of your bedroom."
 
 [node name="Player" parent="." instance=ExtResource("1")]
-position = Vector2(150, 170)
+position = Vector2(210, 185)

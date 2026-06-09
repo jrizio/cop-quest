@@ -14,8 +14,10 @@
   - **2B:** Collision + walkable areas — player becomes a `CharacterBody2D`,
     furniture/walls become solid (sliding; navmesh pathfinding is a later polish).
   - **2C:** Save & load; day/time HUD.
-  - **2D:** First procedurally-generated pixel-art room (the bedroom) + locked
-    palette and sprite dimensions.
+  - **2D (DONE):** Bedroom art. Two pipelines exist: a procedural generator
+    (`tools/gen_art.js`) and a real-image pixelator (`tools/pixelate.js`, with a
+    built-in PNG decoder). The bedroom currently uses a pixelated photo; the
+    officer sprite + item icons are procedural. Hotspots realigned to the photo.
 
 - **M3 — The town.** True isometric `TileMap` driving map with a road network
   and a following `Camera2D` over a larger town; 2–3 more visitable buildings

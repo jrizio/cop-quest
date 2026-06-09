@@ -52,6 +52,29 @@ node tools/gen_art.js
 So far the **bedroom** is fully illustrated (background, the officer sprite, and
 item icons). The driveway, HQ, and town are next.
 
+To use a **real image** (photo / render / AI-generated) instead, drop an 8-bit
+PNG in `assets/source/` and pixelate it onto the game grid:
+
+```
+node tools/pixelate.js assets/source/bedroom.png assets/art/bedroom_bg.png --levels 6 --dither
+```
+
+See `assets/source/README.md` for options. The pixelator is dependency-free
+(includes its own PNG decoder).
+
+For a **character sprite** from a render (it can have a solid background — the
+tool removes it and crops to the figure):
+
+```
+node tools/pixelate.js assets/source/officer.png assets/art/officer.png \
+  --w 44 --h 60 --fit contain --bgremove --bgtol 70 --levels 12 --alphacut 128
+```
+
+`--fit contain` fits the whole figure (bottom-aligned feet), `--bgremove`
+flood-fills the background to transparent, `--alphacut` makes crisp edges. If you
+change the sprite height, update the player sprite's `offset` (set y to
+`-height/2`) in `scenes/actors/player.tscn` so the feet stay planted.
+
 ### Core systems
 
 - **GameManager** (autoload) — inventory, flags, shift state, pending spawn.

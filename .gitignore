@@ -7,6 +7,11 @@ export_presets.cfg
 # Dev-only art preview (PREVIEW=1 node tools/gen_art.js)
 tools/_preview.png
 
+# Large source images for pixelation (commit deliberately if wanted)
+assets/source/*.png
+assets/source/*.jpg
+assets/source/*.jpeg
+
 # OS / editor
 .DS_Store
 Thumbs.db

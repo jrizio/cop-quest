@@ -76,7 +76,52 @@ class Canvas {
 				for (let x = Math.round(xs[k]); x <= Math.round(xs[k + 1]); x++) this.set(x, y, c);
 		}
 	}
+	// --- shading / lighting helpers (for the "lit" pixel-painting look) ---
+	mulPx(x, y, f) { // multiply existing pixel brightness (scalar or [r,g,b])
+		x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return;
+		const i = (y * this.w + x) * 4; if (this.px[i + 3] === 0) return;
+		const fr = f.length ? f[0] : f, fg = f.length ? f[1] : f, fb = f.length ? f[2] : f;
+		this.px[i] = clamp8(this.px[i] * fr);
+		this.px[i + 1] = clamp8(this.px[i + 1] * fg);
+		this.px[i + 2] = clamp8(this.px[i + 2] * fb);
+	}
+	addPx(x, y, dr, dg, db) { // add light (warm glow, highlights)
+		x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return;
+		const i = (y * this.w + x) * 4; if (this.px[i + 3] === 0) return;
+		this.px[i] = clamp8(this.px[i] + dr); this.px[i + 1] = clamp8(this.px[i + 1] + dg); this.px[i + 2] = clamp8(this.px[i + 2] + db);
+	}
+	tint(x, y, c, a) { // blend existing pixel toward color c by alpha a
+		x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return;
+		const i = (y * this.w + x) * 4; if (this.px[i + 3] === 0) return;
+		this.px[i] = this.px[i] * (1 - a) + c[0] * a;
+		this.px[i + 1] = this.px[i + 1] * (1 - a) + c[1] * a;
+		this.px[i + 2] = this.px[i + 2] * (1 - a) + c[2] * a;
+	}
+	rectGrad(x, y, w, h, top, bot) { // vertical gradient fill
+		for (let yy = 0; yy < h; yy++) this.hline(x, y + yy, w, mix(top, bot, h <= 1 ? 0 : yy / (h - 1)));
+	}
+	softShadow(cx, cy, rx, ry, strength) { // soft elliptical contact shadow
+		for (let yy = -ry; yy <= ry; yy++)
+			for (let xx = -rx; xx <= rx; xx++) {
+				const d = (xx * xx) / (rx * rx) + (yy * yy) / (ry * ry);
+				if (d <= 1) this.tint(cx + xx, cy + yy, [18, 12, 8], strength * (1 - d) * (1 - d));
+			}
+	}
+	grainRect(x, y, w, h, amt) { // subtle per-pixel material noise
+		for (let yy = y; yy < y + h; yy++)
+			for (let xx = x; xx < x + w; xx++) {
+				const i = (yy * this.w + xx) * 4; if (this.px[i + 3] === 0) continue;
+				const n = (hash(xx, yy) - 0.5) * amt;
+				this.px[i] = clamp8(this.px[i] + n); this.px[i + 1] = clamp8(this.px[i + 1] + n); this.px[i + 2] = clamp8(this.px[i + 2] + n);
+			}
+	}
 }
+
+// shared math helpers
+const clamp8 = (v) => v < 0 ? 0 : (v > 255 ? 255 : v);
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const mul = (c, f) => [c[0] * f, c[1] * f, c[2] * f];
+function hash(x, y) { let h = (x * 374761393 + y * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
 
 // ----------------------------------------------------------------------------
 // PNG encoder (RGBA, no filtering)
@@ -141,77 +186,148 @@ const C = {
 	silver: [206, 210, 220], silverLo: [150, 156, 168], dark: [40, 32, 24],
 };
 
+// Wood panel with gradient, grain streaks, and edge light/shadow.
+function wood(cv, x, y, w, h, base, dir) {
+	cv.rectGrad(x, y, w, h, mul(base, 1.14), mul(base, 0.82));
+	const n = dir === "v" ? w : h;
+	for (let k = 0; k < n; k++) {
+		if (hash(x + (dir === "v" ? k : 0), y + (dir === "v" ? 0 : k)) > 0.80) {
+			if (dir === "v") cv.vline(x + k, y, h, mul(base, 0.72));
+			else cv.hline(x, y + k, w, mul(base, 0.72));
+		}
+	}
+	cv.grainRect(x, y, w, h, 9);
+	cv.hline(x, y, w, mul(base, 1.32)); cv.vline(x, y, h, mul(base, 1.2));
+	cv.hline(x, y + h - 1, w, mul(base, 0.6)); cv.vline(x + w - 1, y, h, mul(base, 0.62));
+}
+
 // ----------------------------------------------------------------------------
-// Bedroom background (320x200), 3/4 view: wall on top, floor on bottom.
+// Bedroom background (320x200), 3/4 view: lit "pixel-painting" style.
+// Built from gradients + grain + soft shadows, then a global lighting pass
+// (window daylight, warm lamp glow, vignette) so the scene reads as one space.
 // ----------------------------------------------------------------------------
 function bedroom() {
 	const cv = new Canvas(320, 200);
-	const FLOOR_Y = 118;
+	const FY = 116;
 
-	// Wall with faint vertical stripes
-	cv.fill(0, 0, 320, FLOOR_Y, C.wall);
-	for (let x = 0; x < 320; x += 8) cv.vline(x, 0, FLOOR_Y, C.wallStripe);
-	// Baseboard
-	cv.fill(0, FLOOR_Y - 6, 320, 6, C.baseboard);
-	cv.hline(0, FLOOR_Y - 6, 320, C.baseHi);
+	// ---------- WALL ----------
+	const wTop = [150, 132, 105], wBot = [190, 172, 143];
+	for (let y = 0; y < FY; y++) {
+		const r = mix(wTop, wBot, y / FY);
+		for (let x = 0; x < 320; x++) {
+			let c = ((x / 7 | 0) % 2 === 0) ? mul(r, 0.96) : r; // wallpaper stripes
+			if (y % 6 === 0 && x % 24 === ((y / 6 | 0) % 24)) c = mul(c, 1.05); // faint motif
+			cv.set(x, y, c);
+		}
+	}
+	cv.grainRect(0, 0, 320, FY, 7);
+	cv.rectGrad(0, 0, 320, 5, [120, 104, 82], [165, 148, 120]); // crown molding
+	cv.hline(0, 5, 320, mul([120, 104, 82], 0.8));
+	cv.fill(0, 70, 320, 2, [120, 102, 78]); cv.hline(0, 70, 320, [175, 156, 126]); // chair rail
+	cv.rectGrad(0, FY - 9, 320, 9, [108, 90, 68], [78, 62, 44]); // baseboard
+	cv.hline(0, FY - 9, 320, [150, 130, 104]);
 
-	// Floor with horizontal planks
-	cv.fill(0, FLOOR_Y, 320, 200 - FLOOR_Y, C.floor);
-	for (let y = FLOOR_Y; y < 200; y += 10) { cv.hline(0, y, 320, C.plank); cv.hline(0, y + 1, 320, C.floorHi); }
-	// stagger plank seams
-	for (let y = FLOOR_Y + 5; y < 200; y += 10) for (let x = (y * 7) % 40; x < 320; x += 80) cv.vline(x, y, 5, C.plank);
+	// ---------- FLOOR ----------
+	const fFar = [150, 112, 72], fNear = [120, 84, 50];
+	for (let y = FY; y < 200; y++) cv.hline(0, y, 320, mix(fFar, fNear, (y - FY) / (200 - FY)));
+	{ // perspective planks: seam gap grows toward the viewer
+		let y0 = FY, s = 5.5, band = 0;
+		while (y0 < 200) {
+			const yi = Math.round(y0), s2 = Math.round(s);
+			cv.hline(0, yi, 320, [66, 44, 26]);
+			for (let x = (band % 2 ? 26 : 64); x < 320; x += 78) cv.vline(x, yi, s2, [66, 44, 26]);
+			y0 += s; s += 1.4; band++;
+		}
+	}
+	cv.grainRect(0, FY, 320, 200 - FY, 9);
 
-	// Window (center wall) with sky + curtains
-	cv.box(116, 16, 70, 56, C.winFrame, null, C.winFrameLo);
-	cv.fill(122, 22, 58, 44, C.sky);
-	cv.fill(122, 46, 58, 20, C.skyLo);
-	cv.vline(151, 22, 44, C.winFrameLo); cv.hline(122, 44, 58, C.winFrameLo); // mullions
-	cv.fill(110, 14, 10, 64, C.curtain); cv.vline(112, 14, 64, C.curtainHi);
-	cv.fill(182, 14, 10, 64, C.curtain); cv.vline(184, 14, 64, C.curtainHi);
+	// ---------- contact shadows (under furniture, before drawing it) ----------
+	cv.softShadow(56, 176, 60, 12, 0.5);
+	cv.softShadow(260, 116, 54, 10, 0.45);
+	cv.softShadow(150, 158, 66, 16, 0.32);
+	cv.softShadow(120, 122, 22, 7, 0.4);
 
-	// Framed picture (left wall)
-	cv.box(40, 20, 40, 30, C.picFrame, null, C.dark);
-	cv.fill(44, 24, 32, 22, C.pic); cv.fill(44, 24, 32, 11, C.picSky);
-	cv.polygon([[44, 46], [58, 30], [70, 40], [76, 34], [76, 46]], [96, 120, 96]); // little hills
+	// ---------- WINDOW ----------
+	cv.box(114, 14, 74, 60, [150, 150, 156], [196, 196, 202], [120, 120, 128]);
+	cv.rectGrad(120, 20, 62, 48, [120, 170, 222], [196, 216, 236]); // sky
+	for (let yy = 20; yy < 68; yy++) for (let xx = 120; xx < 182; xx++) { // sun glow
+		const dx = xx - 158, dy = yy - 30, d = Math.sqrt(dx * dx + dy * dy);
+		if (d < 26) cv.addPx(xx, yy, (26 - d) * 2.2, (26 - d) * 2.2, (26 - d) * 1.4);
+	}
+	cv.fill(150, 20, 2, 48, [150, 150, 156]); cv.fill(120, 42, 62, 2, [150, 150, 156]); // mullions
+	cv.box(110, 68, 82, 6, [170, 160, 150], [200, 192, 182], [120, 112, 102]); // sill
+	for (const cx0 of [104, 180]) for (let xx = 0; xx < 12; xx++) { // curtains with folds
+		const fold = 0.78 + 0.22 * Math.sin(xx * 1.6);
+		cv.rectGrad(cx0 + xx, 12, 1, 62, mul([176, 72, 72], fold * 1.05), mul([150, 56, 56], fold));
+	}
 
-	// Bed (left), headboard up against wall
-	cv.box(10, 96, 92, 78, C.bedFrame, C.bedFrameHi, C.bedFrameLo);
-	cv.box(10, 84, 92, 16, C.bedFrame, C.bedFrameHi, C.bedFrameLo); // headboard
-	cv.fill(16, 100, 80, 70, C.blanket);
-	cv.hline(16, 100, 80, C.blanketHi);
-	for (let y = 104; y < 170; y += 6) cv.hline(16, y, 80, C.blanketLo); // quilting lines
-	cv.box(20, 94, 56, 20, C.pillow, null, C.pillowLo); // pillow
-	cv.fill(16, 100, 80, 8, C.pillowLo); // folded sheet edge
+	// ---------- PICTURE (left wall) ----------
+	cv.box(36, 18, 42, 32, [60, 44, 30], [86, 66, 46], [34, 24, 16]);
+	cv.rectGrad(41, 23, 32, 22, [150, 196, 214], [120, 156, 128]);
+	cv.polygon([[41, 45], [54, 30], [64, 38], [72, 31], [78, 38], [78, 45]], [88, 116, 90]);
 
-	// Nightstand + lamp (right of bed)
-	cv.box(104, 92, 30, 26, C.stand, C.standHi, C.standLo);
-	cv.hline(104, 104, 30, C.standLo);
-	cv.fill(116, 84, 6, 10, C.lampPole); cv.fill(112, 78, 14, 8, C.shade); cv.hline(112, 78, 14, C.shadeLo);
-	cv.fill(113, 92, 12, 4, C.lampBase);
+	// ---------- BED ----------
+	wood(cv, 8, 82, 96, 18, [108, 72, 46], "h");   // headboard
+	wood(cv, 8, 150, 96, 26, [96, 62, 40], "h");   // base/footboard
+	cv.rectGrad(14, 98, 84, 56, [86, 118, 168], [54, 78, 124]); // duvet
+	for (let i = 0; i < 6; i++) { const yy = 106 + i * 8; cv.hline(14, yy, 84, mul([54, 78, 124], 0.82)); cv.hline(14, yy + 1, 84, [100, 132, 182]); }
+	cv.rectGrad(14, 98, 84, 12, [214, 210, 200], [176, 172, 162]); // turn-down sheet
+	cv.box(18, 92, 38, 18, [236, 230, 218], [252, 248, 240], [200, 194, 182]); // pillow
+	cv.box(58, 92, 38, 18, [232, 226, 214], [248, 244, 236], [196, 190, 178]); // pillow
 
-	// Dresser (upper right) — keys will sit on top (~y48) as a separate sprite
-	cv.box(220, 30, 80, 84, C.dresser, C.dresserHi, C.dresserLo);
-	cv.fill(224, 30, 72, 8, C.dresserHi); // top surface
+	// ---------- NIGHTSTAND + LAMP ----------
+	wood(cv, 106, 96, 28, 24, [120, 82, 52], "v");
+	cv.hline(108, 104, 24, mul([120, 82, 52], 0.6)); cv.disc(120, 108, 1, [40, 30, 20]);
+	cv.fill(118, 86, 4, 10, [110, 110, 124]); // pole
+	cv.polygon([[110, 84], [130, 84], [127, 74], [113, 74]], [236, 214, 150]); // shade
+	cv.hline(113, 74, 14, [250, 234, 180]); cv.fill(112, 95, 16, 3, [80, 80, 92]); // base
+
+	// ---------- DRESSER (upper right) — keys sit on top surface ----------
+	wood(cv, 218, 30, 84, 86, [128, 86, 52], "v");
+	cv.rectGrad(218, 30, 84, 7, [168, 120, 78], [128, 86, 52]); cv.hline(218, 37, 84, mul([128, 86, 52], 0.6));
 	for (let r = 0; r < 3; r++) {
-		const dy = 42 + r * 22;
-		cv.box(226, dy, 68, 18, C.drawer, C.dresserHi, C.dresserLo);
-		cv.disc(244, dy + 9, 2, C.knob); cv.disc(276, dy + 9, 2, C.knob);
+		const dy = 44 + r * 23;
+		cv.rectGrad(224, dy, 72, 19, mul([142, 98, 60], 1.12), mul([142, 98, 60], 0.84));
+		cv.hline(224, dy, 72, mul([142, 98, 60], 1.3)); cv.hline(224, dy + 18, 72, mul([142, 98, 60], 0.6));
+		cv.grainRect(224, dy, 72, 19, 8);
+		for (const hx of [246, 274]) { cv.fill(hx, dy + 8, 12, 3, [150, 150, 160]); cv.hline(hx, dy + 8, 12, [210, 212, 222]); cv.hline(hx, dy + 10, 12, [90, 92, 102]); }
 	}
 
-	// Door (right edge)
-	cv.box(296, 64, 24, 74, C.door, null, C.doorLo);
-	cv.box(300, 70, 16, 28, C.doorPanel, null, C.doorLo);
-	cv.box(300, 102, 16, 30, C.doorPanel, null, C.doorLo);
-	cv.disc(302, 102, 2, C.doorKnob);
+	// ---------- DOOR (right edge) ----------
+	cv.box(294, 60, 26, 78, [80, 64, 46], [110, 90, 66], [56, 44, 30]); // jamb
+	wood(cv, 297, 62, 21, 74, [104, 70, 46], "v");
+	cv.box(300, 68, 15, 28, mul([104, 70, 46], 0.9), mul([104, 70, 46], 1.15), mul([104, 70, 46], 0.7));
+	cv.box(300, 100, 15, 30, mul([104, 70, 46], 0.9), mul([104, 70, 46], 1.15), mul([104, 70, 46], 0.7));
+	cv.disc(303, 102, 2, [214, 182, 86]); cv.set(302, 101, [248, 224, 150]);
 
-	// Rug (center floor) — oval-ish via stacked rects
-	const rx = 150, ry = 150;
-	for (let i = 0; i < 28; i++) {
-		const t = i / 27, hw = Math.round(60 * Math.sin(Math.PI * t));
-		cv.hline(rx - hw, ry - 14 + i, hw * 2, i < 3 || i > 24 ? C.rugRim : C.rug);
+	// ---------- RUG (center floor) ----------
+	const rx = 150, ry = 152;
+	for (let i = 0; i < 30; i++) {
+		const t = i / 29, hw = Math.round(62 * Math.sin(Math.PI * t));
+		cv.hline(rx - hw, ry - 15 + i, hw * 2, (i < 3 || i > 26) ? [200, 176, 92] : [150, 58, 66]);
 	}
-	cv.fill(rx - 30, ry - 6, 60, 12, C.rugInner);
-	cv.hline(rx - 44, ry, 88, C.rugRim);
+	cv.hline(rx - 46, ry, 92, [200, 176, 92]); cv.hline(rx - 46, ry - 1, 92, mul([200, 176, 92], 0.7));
+	cv.fill(rx - 26, ry - 5, 52, 10, [120, 44, 52]); cv.fill(rx - 6, ry - 3, 12, 6, [200, 176, 92]);
+	cv.grainRect(rx - 62, ry - 15, 124, 30, 6);
+
+	// ---------- LIGHTING PASS ----------
+	const winX = 151, winY = 56, lampX = 120, lampY = 80;
+	for (let y = 0; y < 200; y++) for (let x = 0; x < 320; x++) {
+		const i = (y * 320 + x) * 4; if (cv.px[i + 3] === 0) continue;
+		// warm light pool on floor under the window
+		if (y > FY && x > 118 && x < 202) {
+			const pool = Math.max(0, 1 - Math.abs(x - 158) / 62) * Math.max(0, 1 - (y - FY) / 72);
+			cv.addPx(x, y, pool * 34, pool * 30, pool * 16);
+		}
+		// warm lamp glow
+		const dl = Math.hypot(x - lampX, y - lampY);
+		if (dl < 60) cv.addPx(x, y, (60 - dl) * 0.5, (60 - dl) * 0.36, (60 - dl) * 0.12);
+		// broad cool daylight from the window + corner vignette
+		const bright = 1 + Math.max(0, (150 - Math.hypot(x - winX, y - winY)) / 150) * 0.28;
+		const vx = (x - 160) / 160, vy = (y - 100) / 100;
+		cv.mulPx(x, y, bright * (1 - 0.26 * (vx * vx + vy * vy)));
+	}
+	cv.grainRect(0, 0, 320, 200, 5); // final film grain
 
 	return cv;
 }
