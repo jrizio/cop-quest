@@ -67,13 +67,31 @@ tool removes it and crops to the figure):
 
 ```
 node tools/pixelate.js assets/source/officer.png assets/art/officer.png \
-  --w 44 --h 60 --fit contain --bgremove --bgtol 70 --levels 12 --alphacut 128
+  --w 44 --h 60 --fit contain --bgremove --bgtol 48 --levels 12 --alphacut 128
 ```
 
 `--fit contain` fits the whole figure (bottom-aligned feet), `--bgremove`
 flood-fills the background to transparent, `--alphacut` makes crisp edges. If you
 change the sprite height, update the player sprite's `offset` (set y to
 `-height/2`) in `scenes/actors/player.tscn` so the feet stay planted.
+
+**Tuning `--bgtol`:** it's the color distance from the background that counts as
+"background." Set it *below* the gap between the background and the nearest
+character color, or the fill leaks in and carves chunks out of the figure (e.g.
+a light gray bg vs. a white shirt are only ~69 apart, so 48 is safe but 70 eats
+the shirt). Lower = safer but may leave a thin halo; raise only if halo remains.
+
+### Depth sorting (walking behind furniture)
+
+The bedroom's bed is a separate cutout sprite (`assets/art/bed.png`, carved from
+the photo by `tools/extract_bed.js`) so the player can pass behind it. In
+`bedroom.tscn`, the bed and player live under a `World` node with
+`y_sort_enabled = true`: nodes are drawn back-to-front by their Y position. The
+bed's node sits at its **baseline** (its front edge, ~y=177); when the player's
+feet are above that line the bed draws in front, below it the player draws in
+front. To make another object an occluder: cut it out (edit the polygon in
+`extract_bed.js` or add a similar tool), add it under `World`, and put its node's
+Y at the object's front edge.
 
 ### Core systems
 

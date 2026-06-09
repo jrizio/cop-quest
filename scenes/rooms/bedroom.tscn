@@ -1,17 +1,20 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="1"]
 [ext_resource type="Script" path="res://scripts/rooms/room.gd" id="2"]
 [ext_resource type="Texture2D" path="res://assets/art/bedroom_bg.png" id="3"]
 [ext_resource type="Texture2D" path="res://assets/art/item_keys.png" id="4"]
 [ext_resource type="Texture2D" path="res://assets/art/item_badge.png" id="5"]
+[ext_resource type="Texture2D" path="res://assets/art/bed.png" id="6"]
 
 [node name="Bedroom" type="Node2D"]
 script = ExtResource("2")
 
 [node name="Background" type="Sprite2D" parent="."]
+texture_filter = 2
 texture = ExtResource("3")
 centered = false
+scale = Vector2(0.25, 0.25)
 
 [node name="Spawns" type="Node2D" parent="."]
 
@@ -50,5 +53,18 @@ metadata/target = "res://scenes/rooms/driveway.tscn"
 metadata/spawn = "FromBedroom"
 metadata/look = "The doorway leading out of your bedroom."
 
-[node name="Player" parent="." instance=ExtResource("1")]
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Bed" type="Node2D" parent="World"]
+position = Vector2(0, 177)
+
+[node name="BedSprite" type="Sprite2D" parent="World/Bed"]
+texture_filter = 2
+texture = ExtResource("6")
+centered = false
+scale = Vector2(0.25, 0.25)
+position = Vector2(0, -104)
+
+[node name="Player" parent="World" instance=ExtResource("1")]
 position = Vector2(210, 185)

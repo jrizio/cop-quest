@@ -24,7 +24,11 @@ var _player: Node2D
 
 
 func _ready() -> void:
-	_player = $Player
+	# Player may be nested under a Y-sorted "World" node (for depth sorting with
+	# furniture) or be a direct child in simpler rooms.
+	_player = get_node_or_null("World/Player")
+	if _player == null:
+		_player = get_node_or_null("Player")
 	_player.bounds = bounds
 
 	var spawn := get_node_or_null("Spawns/" + GameManager.pending_spawn) as Node2D

@@ -4,8 +4,8 @@
 export_presets.cfg
 *.translation
 
-# Dev-only art preview (PREVIEW=1 node tools/gen_art.js)
-tools/_preview.png
+# Dev-only scratch files (previews, grids, occlusion tests, etc.)
+tools/_*
 
 # Large source images for pixelation (commit deliberately if wanted)
 assets/source/*.png
