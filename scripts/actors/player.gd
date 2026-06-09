@@ -6,8 +6,8 @@ extends Node2D
 ## When a click-walk reaches its destination, the optional on_arrive callback
 ## fires once — this is how "walk to the hotspot, THEN apply the verb" works.
 ##
-## Drawn with simple primitives for now; swapped for an animated pixel-art
-## sprite later. The origin (0,0) sits at the character's feet.
+## Rendered via a pixel-art Sprite2D child (assets/art/officer.png) whose origin
+## (0,0) sits at the character's feet. Directional animation comes later.
 
 @export var speed: float = 60.0
 
@@ -55,9 +55,3 @@ func _process(delta: float) -> void:
 		else:
 			global_position += to_target.normalized() * speed * delta
 			global_position = global_position.clamp(bounds.position, bounds.end)
-
-
-func _draw() -> void:
-	draw_rect(Rect2(-5, -16, 10, 16), Color(0.13, 0.18, 0.45))
-	draw_rect(Rect2(-4, -22, 8, 7), Color(0.92, 0.78, 0.64))
-	draw_rect(Rect2(-5, -16, 10, 3), Color(0.25, 0.30, 0.60))

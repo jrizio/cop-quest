@@ -39,6 +39,19 @@ scripts/     core/ (autoloads)  rooms/  driving/  actors/
 docs/        roadmap & design notes
 ```
 
+### Art pipeline
+
+Pixel art is generated procedurally by a dependency-free Node script and checked
+in as PNGs under `assets/art/`. To tweak the look, edit the draw routines and
+regenerate:
+
+```
+node tools/gen_art.js
+```
+
+So far the **bedroom** is fully illustrated (background, the officer sprite, and
+item icons). The driveway, HQ, and town are next.
+
 ### Core systems
 
 - **GameManager** (autoload) — inventory, flags, shift state, pending spawn.

@@ -4,6 +4,9 @@
 export_presets.cfg
 *.translation
 
+# Dev-only art preview (PREVIEW=1 node tools/gen_art.js)
+tools/_preview.png
+
 # OS / editor
 .DS_Store
 Thumbs.db
