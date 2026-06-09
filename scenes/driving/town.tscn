@@ -1,0 +1,88 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/driving/driving.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/actors/cruiser.gd" id="2"]
+
+[node name="Town" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_right = 600.0
+offset_bottom = 400.0
+color = Color(0.2, 0.4, 0.18, 1)
+
+[node name="RoadV" type="ColorRect" parent="."]
+offset_left = 270.0
+offset_right = 330.0
+offset_bottom = 400.0
+color = Color(0.32, 0.32, 0.34, 1)
+
+[node name="RoadH" type="ColorRect" parent="."]
+offset_top = 170.0
+offset_right = 600.0
+offset_bottom = 230.0
+color = Color(0.32, 0.32, 0.34, 1)
+
+[node name="HomeBlock" type="ColorRect" parent="."]
+offset_left = 195.0
+offset_top = 300.0
+offset_right = 265.0
+offset_bottom = 360.0
+color = Color(0.7, 0.65, 0.55, 1)
+
+[node name="HomeLabel" type="Label" parent="."]
+offset_left = 150.0
+offset_top = 310.0
+offset_right = 265.0
+offset_bottom = 326.0
+theme_override_font_sizes/font_size = 9
+text = "HOME"
+horizontal_alignment = 2
+
+[node name="HQBlock" type="ColorRect" parent="."]
+offset_left = 195.0
+offset_top = 40.0
+offset_right = 340.0
+offset_bottom = 100.0
+color = Color(0.4, 0.45, 0.6, 1)
+
+[node name="HQLabel" type="Label" parent="."]
+offset_left = 200.0
+offset_top = 52.0
+offset_right = 335.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 11
+text = "POLICE HQ"
+
+[node name="Spawns" type="Node2D" parent="."]
+
+[node name="Default" type="Marker2D" parent="Spawns"]
+position = Vector2(300, 320)
+
+[node name="FromDriveway" type="Marker2D" parent="Spawns"]
+position = Vector2(300, 320)
+
+[node name="FromHQ" type="Marker2D" parent="Spawns"]
+position = Vector2(300, 135)
+
+[node name="Entrances" type="Node2D" parent="."]
+
+[node name="ToHQ" type="Marker2D" parent="Entrances"]
+position = Vector2(300, 100)
+metadata/target = "res://scenes/rooms/hq_bullpen.tscn"
+metadata/spawn = "FromTown"
+
+[node name="ToDriveway" type="Marker2D" parent="Entrances"]
+position = Vector2(300, 360)
+metadata/target = "res://scenes/rooms/driveway.tscn"
+metadata/spawn = "FromTown"
+
+[node name="Cruiser" type="Node2D" parent="."]
+position = Vector2(300, 320)
+script = ExtResource("2")
+
+[node name="Camera2D" type="Camera2D" parent="Cruiser"]
+limit_left = 0
+limit_top = 0
+limit_right = 600
+limit_bottom = 400

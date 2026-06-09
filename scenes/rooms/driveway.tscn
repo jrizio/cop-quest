@@ -1,0 +1,75 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/rooms/room.gd" id="2"]
+
+[node name="Driveway" type="Node2D"]
+script = ExtResource("2")
+
+[node name="Grass" type="ColorRect" parent="."]
+offset_right = 320.0
+offset_bottom = 200.0
+color = Color(0.25, 0.45, 0.2, 1)
+
+[node name="House" type="ColorRect" parent="."]
+offset_right = 70.0
+offset_bottom = 200.0
+color = Color(0.7, 0.65, 0.55, 1)
+
+[node name="Pavement" type="ColorRect" parent="."]
+offset_left = 90.0
+offset_top = 110.0
+offset_right = 260.0
+offset_bottom = 200.0
+color = Color(0.4, 0.4, 0.42, 1)
+
+[node name="DoorVisual" type="ColorRect" parent="."]
+offset_left = 40.0
+offset_top = 80.0
+offset_right = 60.0
+offset_bottom = 130.0
+color = Color(0.25, 0.15, 0.1, 1)
+
+[node name="Spawns" type="Node2D" parent="."]
+
+[node name="Default" type="Marker2D" parent="Spawns"]
+position = Vector2(120, 150)
+
+[node name="FromBedroom" type="Marker2D" parent="Spawns"]
+position = Vector2(80, 105)
+
+[node name="FromTown" type="Marker2D" parent="Spawns"]
+position = Vector2(180, 175)
+
+[node name="Hotspots" type="Node2D" parent="."]
+
+[node name="DoorToHouse" type="Marker2D" parent="Hotspots"]
+position = Vector2(50, 105)
+metadata/action = "exit"
+metadata/target = "res://scenes/rooms/bedroom.tscn"
+metadata/spawn = "FromDriveway"
+
+[node name="Cruiser" type="Marker2D" parent="Hotspots"]
+position = Vector2(180, 145)
+metadata/action = "exit"
+metadata/target = "res://scenes/driving/town.tscn"
+metadata/spawn = "FromDriveway"
+metadata/requires = "car_keys"
+metadata/requires_msg = "You need your car keys to drive. They're on the dresser at home."
+
+[node name="CruiserVisual" type="ColorRect" parent="Hotspots/Cruiser"]
+offset_left = -12.0
+offset_top = -8.0
+offset_right = 12.0
+offset_bottom = 8.0
+color = Color(0.85, 0.85, 0.9, 1)
+
+[node name="CruiserStripe" type="ColorRect" parent="Hotspots/Cruiser"]
+offset_left = -12.0
+offset_top = -8.0
+offset_right = 12.0
+offset_bottom = -4.0
+color = Color(0.1, 0.12, 0.25, 1)
+
+[node name="Player" parent="." instance=ExtResource("1")]
+position = Vector2(120, 150)
