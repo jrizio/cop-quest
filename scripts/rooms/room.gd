@@ -18,6 +18,14 @@ extends Node2D
 
 @export var bounds: Rect2 = Rect2(0, 0, 320, 200)
 
+## Perspective scaling for the player (Sierra style). The player's scale
+## interpolates from far_scale at far_y to near_scale at near_y.
+## Leave near_y <= far_y to disable (flat rooms).
+@export var persp_far_y: float = 0.0
+@export var persp_near_y: float = 0.0
+@export var persp_far_scale: float = 1.0
+@export var persp_near_scale: float = 1.0
+
 const CLICK_RADIUS := 16.0
 
 var _player: Node2D
@@ -31,11 +39,23 @@ func _ready() -> void:
 		_player = get_node_or_null("Player")
 	_player.bounds = bounds
 
+	# Walkable floor: an (invisible) Polygon2D child named "WalkArea". Rooms
+	# without one fall back to the bounds rectangle.
+	var area := get_node_or_null("WalkArea") as Polygon2D
+	if area != null:
+		_player.walk_poly = area.polygon
+		area.visible = false
+
+	_player.persp_far_y = persp_far_y
+	_player.persp_near_y = persp_near_y
+	_player.persp_far_scale = persp_far_scale
+	_player.persp_near_scale = persp_near_scale
+
 	var spawn := get_node_or_null("Spawns/" + GameManager.pending_spawn) as Node2D
 	if spawn == null:
 		spawn = get_node_or_null("Spawns/Default") as Node2D
 	if spawn != null:
-		_player.global_position = spawn.global_position
+		_player.place_at(spawn.global_position)
 
 
 func _input(event: InputEvent) -> void:

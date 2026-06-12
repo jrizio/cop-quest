@@ -81,17 +81,28 @@ character color, or the fill leaks in and carves chunks out of the figure (e.g.
 a light gray bg vs. a white shirt are only ~69 apart, so 48 is safe but 70 eats
 the shirt). Lower = safer but may leave a thin halo; raise only if halo remains.
 
+### Walkable areas (no clipping into walls)
+
+Each room can define its visible floor as a `Polygon2D` child named `WalkArea`
+(hidden at runtime; tint it in the editor to trace it). The player's feet are
+confined to that polygon: blocked steps slide along its edges, and click-to-walk
+destinations are clamped to the nearest in-area point. Rooms without a
+`WalkArea` fall back to a plain rectangle (`bounds`).
+
+### Perspective scaling (Sierra style)
+
+Rooms with depth set four properties on the room root (`persp_far_y`,
+`persp_near_y`, `persp_far_scale`, `persp_near_scale`): the player's scale and
+walk speed interpolate between them based on his Y, so he shrinks walking into
+the room. Leave `near_y <= far_y` to disable for flat rooms.
+
 ### Depth sorting (walking behind furniture)
 
-The bedroom's bed is a separate cutout sprite (`assets/art/bed.png`, carved from
-the photo by `tools/extract_bed.js`) so the player can pass behind it. In
-`bedroom.tscn`, the bed and player live under a `World` node with
-`y_sort_enabled = true`: nodes are drawn back-to-front by their Y position. The
-bed's node sits at its **baseline** (its front edge, ~y=177); when the player's
-feet are above that line the bed draws in front, below it the player draws in
-front. To make another object an occluder: cut it out (edit the polygon in
-`extract_bed.js` or add a similar tool), add it under `World`, and put its node's
-Y at the object's front edge.
+Furniture can be cut out of the background as a transparent sprite (see
+`tools/extract_bed.js` for the polygon-cutout pattern) and placed with the
+player under the `World` node (`y_sort_enabled = true`). Each occluder's node Y
+sits at its front-edge baseline so the player draws behind/in front correctly.
+The current bedroom photo is an empty room, so no occluders are active.
 
 ### Core systems
 
