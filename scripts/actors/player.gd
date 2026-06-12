@@ -13,6 +13,22 @@ extends Node2D
 
 @export var speed: float = 60.0
 
+## Walk-cycle playback speed, frames per second.
+@export var walk_fps: float = 10.0
+
+# Sprite sheet rows (vframes order in assets/art/officer_walk.png).
+const ROW_DOWN := 0
+const ROW_UP := 1
+const ROW_RIGHT := 2
+const ROW_LEFT := 3
+const WALK_FRAMES := 8
+
+@onready var _sprite: Sprite2D = $Sprite
+
+var _row: int = ROW_DOWN
+var _anim_time: float = 0.0
+var _moved_this_frame: bool = false
+
 ## Fallback rectangle when no walk polygon is set.
 var bounds: Rect2 = Rect2(0, 0, 320, 200)
 
@@ -46,6 +62,7 @@ func place_at(point: Vector2) -> void:
 
 
 func _process(delta: float) -> void:
+	_moved_this_frame = false
 	var kb := Vector2(
 		Input.get_axis("ui_left", "ui_right"),
 		Input.get_axis("ui_up", "ui_down"))
@@ -60,9 +77,7 @@ func _process(delta: float) -> void:
 		_has_target = false
 		_on_arrive = Callable()
 		_move(kb * speed * delta)
-		return
-
-	if _has_target:
+	elif _has_target:
 		var to_target := _target - global_position
 		if to_target.length() <= 2.0:
 			_has_target = false
@@ -73,6 +88,8 @@ func _process(delta: float) -> void:
 		else:
 			_move(to_target.normalized() * speed * delta)
 
+	_update_anim(delta)
+
 
 ## Apply a movement step, sliding along the walkable-area edge when the full
 ## step would leave it (try full step, then x-only, then y-only).
@@ -80,13 +97,34 @@ func _process(delta: float) -> void:
 func _move(step: Vector2) -> void:
 	step *= scale.x
 	for attempt in [step, Vector2(step.x, 0.0), Vector2(0.0, step.y)]:
+		if attempt == Vector2.ZERO:
+			continue
 		var next: Vector2 = global_position + attempt
 		if _is_walkable(next):
 			global_position = next
 			_update_perspective()
+			_moved_this_frame = true
+			_face(attempt)
 			return
 	# Fully blocked: cancel a pending click-walk so we don't grind forever.
 	_has_target = false
+
+
+## Pick the sprite-sheet row from the applied movement direction.
+func _face(v: Vector2) -> void:
+	if absf(v.x) >= absf(v.y):
+		_row = ROW_RIGHT if v.x > 0.0 else ROW_LEFT
+	else:
+		_row = ROW_DOWN if v.y > 0.0 else ROW_UP
+
+
+func _update_anim(delta: float) -> void:
+	if _moved_this_frame:
+		_anim_time += delta
+		_sprite.frame = _row * WALK_FRAMES + int(_anim_time * walk_fps) % WALK_FRAMES
+	else:
+		_anim_time = 0.0
+		_sprite.frame = _row * WALK_FRAMES  # standing: first frame of the facing
 
 
 func _update_perspective() -> void:

@@ -75,6 +75,17 @@ flood-fills the background to transparent, `--alphacut` makes crisp edges. If yo
 change the sprite height, update the player sprite's `offset` (set y to
 `-height/2`) in `scenes/actors/player.tscn` so the feet stay planted.
 
+For a **walk-cycle sprite sheet** (rows = DOWN, UP, RIGHT, LEFT; 8 frames per
+row; text labels and uneven spacing are fine — frames are auto-detected):
+
+```
+node tools/slice_sheet.js assets/source/walk_sheet.png assets/art/officer_walk.png
+```
+
+It prints the cell size; the player's `Sprite2D` uses the sheet via
+`hframes=8 vframes=4`, and `player.gd` picks the row from the movement
+direction and cycles frames while walking (`walk_fps` to tune cadence).
+
 **Tuning `--bgtol`:** it's the color distance from the background that counts as
 "background." Set it *below* the gap between the background and the nearest
 character color, or the fill leaks in and carves chunks out of the figure (e.g.
