@@ -11,5 +11,5 @@ texture_filter = 2
 texture = ExtResource("2")
 hframes = 8
 vframes = 4
-offset = Vector2(0, -126.5)
-scale = Vector2(0.48, 0.48)
+offset = Vector2(0, -105)
+scale = Vector2(0.58, 0.58)

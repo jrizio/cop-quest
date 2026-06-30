@@ -46,13 +46,25 @@ for (let r = 0; r < ROWS; r++) {
 	}
 
 	for (const [x0, x1] of segs) {
-		let top = -1, bot = -1;
+		// Content rows in this column range, grouped into vertical runs (bridging
+		// gaps <= 4px). The character is the tallest run; any printed frame
+		// number sits as a short run below a gap and is ignored.
+		const rows = [];
 		for (let y = yTop; y < yBot; y++) {
 			let has = false;
 			for (let x = x0; x <= x1; x++) if (alphaAt(x, y)) { has = true; break; }
-			if (has) { if (top < 0) top = y; bot = y; }
+			rows.push(has);
 		}
-		if (bot - top + 1 >= MIN_FRAME_H) frames.push({ row: r, x0, x1, y0: top, y1: bot });
+		const runs = [];
+		let start = -1, gap = 0;
+		for (let i = 0; i <= rows.length; i++) {
+			const occ = i < rows.length && rows[i];
+			if (occ) { if (start < 0) start = i; gap = 0; }
+			else if (start >= 0 && ++gap > 4) { runs.push([start, i - gap]); start = -1; }
+		}
+		let best = null, bestH = 0;
+		for (const [a, b] of runs) { const h = b - a + 1; if (h > bestH) { bestH = h; best = [a, b]; } }
+		if (best && bestH >= MIN_FRAME_H) frames.push({ row: r, x0, x1, y0: yTop + best[0], y1: yTop + best[1] });
 	}
 }
 
@@ -74,6 +86,14 @@ function repairHead(f) {
 	let mask = new Uint8Array(W * H);
 	for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
 		mask[y * W + x] = alphaAt(rx0 + x, ry0 + y) ? 1 : 0;
+	const mask0 = mask.slice(); // survivors before morphology
+	// A reclaimed pixel must sit on top of the head: some survivor below it in
+	// the same column within SUPPORT px. Kills halos that balloon beside the head.
+	const SUPPORT = 95;
+	const supported = (x, y) => {
+		for (let yy = y + 1; yy < Math.min(H, y + SUPPORT); yy++) if (mask0[yy * W + x]) return true;
+		return false;
+	};
 
 	const pass = (src, val) => { // one 3x3 dilate (val=1) or erode (val=0) step
 		const dst = new Uint8Array(src);
@@ -109,7 +129,7 @@ function repairHead(f) {
 
 	let reclaimed = 0;
 	for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-		if (mask[y * W + x] && !alphaAt(rx0 + x, ry0 + y)) {
+		if (mask[y * W + x] && !alphaAt(rx0 + x, ry0 + y) && supported(x, y)) {
 			img.px[((ry0 + y) * img.w + (rx0 + x)) * 4 + 3] = 255;
 			reclaimed++;
 		}
