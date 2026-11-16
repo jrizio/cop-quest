@@ -1,125 +1,103 @@
-# Cop Quest
+# Cop Quest: Dead Reckoning
 
-A Police Quest–style Sierra adventure built in **Godot 4**, with retro SCI/VGA
-pixel-art presentation. Free-roam suburban town: start your day at home, drive
-your cruiser to Police HQ, work your shift, and head home.
+A complete Sierra-style police procedural adventure built in **Godot 4**, styled
+after *Police Quest: Open Season* (1993). It has 320x200 256-color "digitized"
+rooms, the hidden PQ4 icon bar, points for good procedure, and sudden
+career-ending deaths for bad procedure.
+
+> **Mesa Verde, California, 1995.** Homicide detective Gabe Navarro has spent one
+> night in his new house when the phone rings. A longshoreman is dead in his car
+> at the Pier 9 marina, gun in hand. It looks like a suicide, but it isn't.
+
+The full story, cast, act structure, and how it continues the *Police Quest*
+lineage (including where Sonny Bonds left off) are in
+[`docs/STORY.md`](docs/STORY.md).
 
 ## Running it
 
-1. Install **Godot 4.x** (standalone, no installer): https://godotengine.org/download
-2. Launch Godot → **Import** → pick the `project.godot` in this folder → **Open**.
-3. Press **F5** (or the ▶ play button) to run.
+1. Install **Godot 4.6+** (standalone): https://godotengine.org/download
+2. In Godot, choose **Import**, pick this folder's `project.godot`, then click **Open**.
+3. Press **F5** to play.
 
-> Godot isn't required to *edit* the text files, but you need it to play.
+A full playthrough takes about 30–45 minutes. The maximum score is **142**.
 
-## Controls
+## How to play (PQ4 interface)
 
-- **Rooms:** **left-click** to walk (or use **WASD / arrow keys**).
-- **Verbs (Sierra style):** **right-click cycles the active verb** — Walk, Look,
-  Use, Talk, Take — shown next to the cursor. Pick a verb, then **left-click a
-  hotspot**: your officer walks over and applies it (e.g. *Look* the badge to
-  read it, *Take* it to pocket it, *Use* the cruiser to drive).
-- **Driving:** **WASD / arrow keys** to drive; reach a building to enter it.
+| Action | How |
+|--------|-----|
+| Icon bar | Move the mouse to the **top edge** of the screen. |
+| Change cursor | **Right-click** cycles Walk, Look, Hand, Talk, and your selected Item. |
+| Use a cursor | **Left-click** on something. Gabe walks over, then acts. |
+| Use an item on something | Open Inventory, choose **Select** (arrow), click the item, then click the target with it. |
+| Use an item on yourself | In Inventory, choose **Hand** and click the item (gloves, vest, radio, notebook). |
+| Case notes / hints | Use the **notebook** in your inventory. |
+| Keys | `TAB` inventory · `ESC` control panel · `F5` save · `F7` restore · `F2` sound · `F1` help |
 
-## The M1 loop (vertical slice)
+You'll need to follow procedure, just like the originals. Show your badge, sign
+the scene log, photograph before you touch, glove up, bag your evidence, call
+for backup, wear your vest, and identify yourself. Don't drink and drive.
 
-Title screen → **bedroom** (pick up car keys + badge) → **driveway** (enter the
-cruiser — needs the keys) → **driving map** (drive up the road to HQ) →
-**HQ bullpen** (walk to the duty desk to clock in) → drive home to clock out.
+## Locations
 
-This is intentionally built with placeholder colored blocks. It exists to prove
-every core system works end to end before we invest in art. See
-[`docs/ROADMAP.md`](docs/ROADMAP.md) for what comes next.
+Home (bedroom and driveway) · city map · Pier 9 crime scene · County Coroner ·
+MVPD Homicide squad room · HQ basement (Property & Evidence and the Crime Lab) ·
+the Rusty Anchor bar · Warehouse 7 (outside and inside) · epilogue.
 
 ## Project layout
 
 ```
-scenes/      rooms/  driving/  actors/   + main.tscn (title)
-scripts/     core/ (autoloads)  rooms/  driving/  actors/
-docs/        roadmap & design notes
+scenes/main.tscn        title screen (entry point)
+scripts/core/           autoloads: GameManager (state, score, saves), SceneManager,
+                        UI (icon bar, cursor, windows), Sound; PixelFont + font data
+scripts/ui/             SierraDialog, InventoryWindow, IconBar
+scripts/actors/         Actor (walk-cycle character), Walkmap (walk area + pathfinding)
+scripts/rooms/          room.gd base class + one script per location
+assets/art/bg|props     room paintings and occluder overlays   (tools/gen_rooms.js)
+assets/art/chars        cast walk-cycle sheets                 (tools/gen_sprites.js)
+assets/art/ui|items     icon bar, cursors, inventory icons     (tools/gen_ui.js)
+assets/audio            synthesized SFX + title theme          (tools/gen_audio.js)
+tests/                  automated playthrough / fail-state / input tests
+docs/STORY.md           story bible and series map
 ```
 
-### Art pipeline
+Rooms are plain scripts that extend `Room`, with no `.tscn` per room. Each one
+sets its background, walk polygon, perspective scaling and spawns in `_setup()`,
+adds hotspots, exits, NPCs and props in `_build()`, and scripts the puzzles in
+`interact(id, verb, item)` as coroutines (`await say(...)`, `await choose(...)`,
+`award(...)`, `die(...)`).
 
-Pixel art is generated procedurally by a dependency-free Node script and checked
-in as PNGs under `assets/art/`. To tweak the look, edit the draw routines and
-regenerate:
+## Art & audio pipeline (no dependencies, just Node)
 
-```
-node tools/gen_art.js
-```
-
-So far the **bedroom** is fully illustrated (background, the officer sprite, and
-item icons). The driveway, HQ, and town are next.
-
-To use a **real image** (photo / render / AI-generated) instead, drop an 8-bit
-PNG in `assets/source/` and pixelate it onto the game grid:
+All of the art and sound is generated procedurally and checked in:
 
 ```
-node tools/pixelate.js assets/source/bedroom.png assets/art/bedroom_bg.png --levels 6 --dither
+node tools/gen_rooms.js      # paints all rooms (or: node tools/gen_rooms.js marina)
+node tools/gen_sprites.js    # re-dresses officer_walk.png into the whole cast
+node tools/gen_ui.js         # icons, cursors, items, scripts/core/font_data.gd
+node tools/gen_audio.js      # SFX + title theme
 ```
 
-See `assets/source/README.md` for options. The pixelator is dependency-free
-(includes its own PNG decoder).
+After regenerating, reopen the project in the editor (or run Godot with
+`--headless --import`) so it reimports the PNGs.
 
-For a **character sprite** from a render (it can have a solid background — the
-tool removes it and crops to the figure):
+- `paint.js` is a small supersampled painter. It does textures, perspective,
+  light pools, and a median-cut 256-color palette with ordered dither.
+- The bedroom is your photo `assets/art/bedroom_bg.png`, regraded and furnished
+  with moving boxes by `gen_rooms.js`. **Don't run the legacy `gen_art.js`**,
+  because it overwrites that photo.
+- `pixelate.js` and `slice_sheet.js` still turn real photos and renders into
+  backgrounds and walk sheets (see `assets/source/README.md`). Coordinates in
+  `gen_rooms.js` are mirrored by the room scripts (hotspots, walk areas,
+  occluder baselines), so change both together.
 
-```
-node tools/pixelate.js assets/source/officer.png assets/art/officer.png \
-  --w 44 --h 60 --fit contain --bgremove --bgtol 48 --levels 12 --alphacut 128
-```
+## Tests
 
-`--fit contain` fits the whole figure (bottom-aligned feet), `--bgremove`
-flood-fills the background to transparent, `--alphacut` makes crisp edges. If you
-change the sprite height, update the player sprite's `offset` (set y to
-`-height/2`) in `scenes/actors/player.tscn` so the feet stay planted.
-
-For a **walk-cycle sprite sheet** (rows = DOWN, UP, RIGHT, LEFT; 8 frames per
-row; text labels and uneven spacing are fine — frames are auto-detected):
+Run these headless with the Godot console executable:
 
 ```
-node tools/slice_sheet.js assets/source/walk_sheet.png assets/art/officer_walk.png
+godot --headless --path . res://tests/playthrough.tscn   # plays the whole game: expects 142/142
+godot --headless --path . res://tests/fail_states.tscn   # DUI, no vest, no backup, no gun, save/restore
+godot --headless --path . res://tests/walk_check.tscn    # every spawn/approach point is walkable + reachable
+godot --headless --path . res://tests/click_input.tscn   # real mouse clicks: verb cycling, walk, act, exit
+godot --headless --path . res://tests/smoke.tscn         # loads every room
 ```
-
-It prints the cell size; the player's `Sprite2D` uses the sheet via
-`hframes=8 vframes=4`, and `player.gd` picks the row from the movement
-direction and cycles frames while walking (`walk_fps` to tune cadence).
-
-**Tuning `--bgtol`:** it's the color distance from the background that counts as
-"background." Set it *below* the gap between the background and the nearest
-character color, or the fill leaks in and carves chunks out of the figure (e.g.
-a light gray bg vs. a white shirt are only ~69 apart, so 48 is safe but 70 eats
-the shirt). Lower = safer but may leave a thin halo; raise only if halo remains.
-
-### Walkable areas (no clipping into walls)
-
-Each room can define its visible floor as a `Polygon2D` child named `WalkArea`
-(hidden at runtime; tint it in the editor to trace it). The player's feet are
-confined to that polygon: blocked steps slide along its edges, and click-to-walk
-destinations are clamped to the nearest in-area point. Rooms without a
-`WalkArea` fall back to a plain rectangle (`bounds`).
-
-### Perspective scaling (Sierra style)
-
-Rooms with depth set four properties on the room root (`persp_far_y`,
-`persp_near_y`, `persp_far_scale`, `persp_near_scale`): the player's scale and
-walk speed interpolate between them based on his Y, so he shrinks walking into
-the room. Leave `near_y <= far_y` to disable for flat rooms.
-
-### Depth sorting (walking behind furniture)
-
-Furniture can be cut out of the background as a transparent sprite (see
-`tools/extract_bed.js` for the polygon-cutout pattern) and placed with the
-player under the `World` node (`y_sort_enabled = true`). Each occluder's node Y
-sits at its front-edge baseline so the player draws behind/in front correctly.
-The current bedroom photo is an empty room, so no occluders are active.
-
-### Core systems
-
-- **GameManager** (autoload) — inventory, flags, shift state, pending spawn.
-- **SceneManager** (autoload) — scene transitions with a named spawn point.
-- **UI** (autoload) — message box + inventory line, rebuilt in code each run.
-- **room.gd** — generic room: spawns the player, runs metadata-driven hotspots
-  (`pickup` / `exit` / `duty`).
-- **driving.gd** — drives the cruiser, triggers location entrances.
