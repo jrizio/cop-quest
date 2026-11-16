@@ -7,8 +7,12 @@ extends Node2D
 
 signal arrived(ok: bool)
 
-const FW := 56
+const FW := 64                 # level-1 frame size (tools/gen_sprites.js)
 const FH := 96
+## Pre-scaled sheet levels, largest first: [scale, file suffix]. The actor
+## draws the smallest level that is still >= its on-screen size, so sprites
+## are area-downsampled offline instead of decimated at runtime.
+const LEVELS := [[1.0, ""], [0.86, "@86"], [0.74, "@74"], [0.64, "@64"]]
 const ROW_DOWN := 0
 const ROW_UP := 1
 const ROW_RIGHT := 2
@@ -21,6 +25,9 @@ var room: Node = null          # owning Room (perspective + walkmap)
 var fixed_scale := 0.0         # >0 overrides perspective (e.g. clerks behind a counter)
 
 var _sprite: Sprite2D
+var _sheets: Array = []        # Texture2D per LEVELS entry
+var _level := -1
+var _s := 1.0                  # current on-screen scale
 var _row := ROW_DOWN
 var _anim := 0.0
 var _path := PackedVector2Array()
@@ -33,7 +40,6 @@ func _init(p_sheet: String = "gabe", facing: int = ROW_DOWN) -> void:
 	_sprite.centered = false
 	_sprite.hframes = 8
 	_sprite.vframes = 4
-	_sprite.offset = Vector2(-FW / 2.0, -FH + 2)
 	add_child(_sprite)
 	set_sheet(p_sheet)
 	face(facing)
@@ -41,7 +47,31 @@ func _init(p_sheet: String = "gabe", facing: int = ROW_DOWN) -> void:
 
 func set_sheet(id: String) -> void:
 	sheet_id = id
-	_sprite.texture = load("res://assets/art/chars/%s.png" % id)
+	_sheets.clear()
+	for lv in LEVELS:
+		var path := "res://assets/art/chars/%s%s.png" % [id, lv[1]]
+		_sheets.append(load(path) if ResourceLoader.exists(path) else null)
+	_level = -1
+	_apply_scale()
+
+
+func _apply_scale() -> void:
+	# pick the smallest pre-scaled sheet that is still at least as big as needed
+	var lvl := 0
+	for i in LEVELS.size():
+		if _sheets[i] != null and LEVELS[i][0] >= _s - 0.001:
+			lvl = i
+	if lvl != _level:
+		_level = lvl
+		var tex: Texture2D = _sheets[lvl]
+		var fr := _sprite.frame
+		_sprite.texture = tex
+		_sprite.frame = fr
+		var fw := tex.get_width() / 8.0
+		var fh := tex.get_height() / 4.0
+		_sprite.offset = Vector2(-roundf(fw / 2.0), -fh + 1)
+	var k: float = _s / LEVELS[_level][0]
+	_sprite.scale = Vector2(k, k)
 
 
 func face(row: int) -> void:
@@ -97,7 +127,7 @@ func _process(delta: float) -> void:
 			arrived.emit(true)
 		else:
 			var tgt := _path[0]
-			var step := speed * delta * clampf(scale.x * 1.15, 0.45, 1.2)
+			var step := speed * delta * clampf(_s * 1.15, 0.45, 1.2)
 			var to := tgt - position
 			if to.length() <= step:
 				position = tgt
@@ -143,11 +173,13 @@ func _update_scale() -> void:
 		s = fixed_scale
 	elif room and room.has_method("scale_at"):
 		s = room.scale_at(position.y)
-	scale = Vector2(s, s)
+	if not is_equal_approx(s, _s) or _level < 0:
+		_s = s
+		_apply_scale()
 
 
 ## Screen-space bounds of the sprite (for click hit-testing).
 func bounds() -> Rect2:
-	var w := FW * scale.x * 0.6
-	var h := (FH - 6) * scale.y
+	var w := FW * _s * 0.52
+	var h := (FH - 6) * _s
 	return Rect2(position.x - w / 2.0, position.y - h, w, h)

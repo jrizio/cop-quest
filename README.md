@@ -80,6 +80,7 @@ node tools/gen_audio.js      # SFX + title theme
 After regenerating, reopen the project in the editor (or run Godot with
 `--headless --import`) so it reimports the PNGs.
 
+- `gen_sprites.js` segments every frame of `officer_walk.png` into body zones at full resolution, then paints each costume, hairstyle, face detail and build. Each character is written at four pre-scaled sizes (`<id>.png`, `@86`, `@74`, `@64`), and the game uses whichever is closest to the on-screen size. Use `DUMP=<id> FR=<col>,<row> OUTF=x.png node tools/gen_sprites.js` to inspect one frame at full size.
 - `paint.js` is a small supersampled painter. It does textures, perspective,
   light pools, and a median-cut 256-color palette with ordered dither.
 - The bedroom is your photo `assets/art/bedroom_bg.png`, regraded and furnished
